@@ -85,7 +85,7 @@ impl LogExporter for OtlpLogsExporter {
         match export_with_retry(&mut client, &self.retry_policy, &request).await {
             Ok(_) => Ok(()),
             Err(error) => Err(OTelSdkError::InternalFailure(format!(
-                "export error: {error:?}"
+                "OTLP export error: {error:?}"
             ))),
         }
     }
