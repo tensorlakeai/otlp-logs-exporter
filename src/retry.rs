@@ -115,13 +115,18 @@ pub async fn export_with_retry(
 
                 match error_type {
                     RetryErrorType::NonRetryable => {
-                        error!(?err, "CloudEvent push failed with non-retryable error");
+                        error!(?err, "Log export failed with non-retryable error");
                         return Err(err.into());
                     }
                     RetryErrorType::Retryable if attempt < policy.max_retries => {
                         attempt += 1;
                         // Use exponential backoff with jitter
-                        warn!(?err, "Retrying CloudEvent push due to retryable error");
+                        warn!(
+                            ?err,
+                            ?policy,
+                            attempt,
+                            "Retrying log export due to retryable error"
+                        );
                         let jitter = generate_jitter(policy.jitter_ms);
                         let delay_with_jitter = std::cmp::min(delay + jitter, policy.max_delay_ms);
                         sleep(Duration::from_millis(delay_with_jitter)).await;
@@ -133,7 +138,9 @@ pub async fn export_with_retry(
                         warn!(
                             ?err,
                             ?server_delay,
-                            "Retrying CloudEvent push after server-specified throttling delay"
+                            ?policy,
+                            attempt,
+                            "Retrying log export after server-specified throttling delay"
                         );
                         sleep(server_delay).await;
                     }
@@ -141,7 +148,9 @@ pub async fn export_with_retry(
                         // Max retries reached
                         error!(
                             ?err,
-                            attempt, "CloudEvent push failed after using all attempts"
+                            ?policy,
+                            attempt,
+                            "Log export push failed after using all attempts"
                         );
                         return Err(err.into());
                     }
